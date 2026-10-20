@@ -170,7 +170,7 @@ h1 {
 .messages {
   padding: 16px;
   min-height: 100px;
-  max-height: 250px;
+  max-height: 350px;
   overflow-y: auto;
 }
 
@@ -283,7 +283,7 @@ footer {
   <section class="core">
     <div class="orb"><div class="orb-inner">J</div></div>
     <h2>JARVIS Interface</h2>
-    <p>Dashboard initialized · AI connection pending</p>
+    <p>Dashboard initialized · AI connection ready</p>
   </section>
 
   <div class="section-title">CAPABILITIES</div>
@@ -301,7 +301,7 @@ footer {
     <div class="tile">
       <div class="tile-icon">◷</div>
       <strong>Memory</strong>
-      <p>Persistent context is planned.</p>
+      <p>Conversation context active · Persistent memory planned.</p>
     </div>
     <div class="tile">
       <div class="tile-icon">⌁</div>
@@ -315,7 +315,7 @@ footer {
     <div class="messages" id="messages" aria-live="polite">
       <div class="message">
         <span class="who">JARVIS / SYSTEM</span>
-        Good day. The interface is operational. My AI engine is ready to be tested. What would you like to work on?
+        Good day, Ahnaf. The interface is operational. My AI engine is ready. How may I assist you?
       </div>
     </div>
 
@@ -326,6 +326,7 @@ footer {
         placeholder="Enter a message..."
         aria-label="Message to JARVIS"
         autocomplete="off"
+        maxlength="8000"
         required
       >
       <button type="submit">Send</button>
@@ -338,7 +339,7 @@ footer {
     <button type="button" data-prompt="Help me solve a problem step by step.">Solve a problem</button>
   </div>
 
-  <footer>JARVIS PERSONAL SYSTEM · VERSION 0.1 · AI CONNECTIVITY TEST</footer>
+  <footer>JARVIS PERSONAL SYSTEM · VERSION 0.2 · CONVERSATION CONTEXT</footer>
 </main>
 
 <script>
@@ -348,6 +349,12 @@ const form = document.getElementById("chatForm");
 const input = document.getElementById("prompt");
 const messages = document.getElementById("messages");
 const sendButton = form.querySelector('button[type="submit"]');
+
+// Temporary conversation history for this page session.
+const conversationHistory = [];
+
+const MAX_HISTORY_MESSAGES = 12;
+const MAX_HISTORY_CHARS = 4000;
 
 function addMessage(who, text) {
   const message = document.createElement("div");
@@ -371,13 +378,17 @@ form.addEventListener("submit", async (event) => {
   event.preventDefault();
 
   const text = input.value.trim();
+
   if (!text || sendButton.disabled) return;
 
   addMessage("YOU", text);
   input.value = "";
-
-  const reply = addMessage("JARVIS", "Processing your request...");
   sendButton.disabled = true;
+
+  const replyElement = addMessage(
+    "JARVIS",
+    "Processing your request..."
+  );
 
   try {
     const response = await fetch(API_URL, {
@@ -385,31 +396,62 @@ form.addEventListener("submit", async (event) => {
       headers: {
         "Content-Type": "application/json"
       },
-      body: JSON.stringify({ message: text })
+      body: JSON.stringify({
+        message: text,
+        history: conversationHistory.slice(-MAX_HISTORY_MESSAGES)
+      })
     });
 
     let data;
+
     try {
       data = await response.json();
     } catch {
-      throw new Error("The backend returned an unreadable response.");
+      throw new Error(
+        "The backend returned an unreadable response."
+      );
     }
 
     if (!response.ok) {
       throw new Error(
-        data.error || `Backend request failed (${response.status}).`
+        data.error ||
+        `Backend request failed (${response.status}).`
       );
     }
 
-    if (typeof data.reply !== "string" || !data.reply.trim()) {
+    if (
+      typeof data.reply !== "string" ||
+      !data.reply.trim()
+    ) {
       throw new Error("The AI returned an empty response.");
     }
 
-    reply.textContent = data.reply;
+    const assistantReply = data.reply.trim();
+    replyElement.textContent = assistantReply;
+
+    // Record successful exchanges for follow-up questions.
+    conversationHistory.push(
+      {
+        role: "user",
+        content: text.slice(0, MAX_HISTORY_CHARS)
+      },
+      {
+        role: "assistant",
+        content: assistantReply.slice(0, MAX_HISTORY_CHARS)
+      }
+    );
+
+    // Retain only the latest 12 individual messages.
+    if (conversationHistory.length > MAX_HISTORY_MESSAGES) {
+      conversationHistory.splice(
+        0,
+        conversationHistory.length - MAX_HISTORY_MESSAGES
+      );
+    }
   } catch (error) {
     console.error("JARVIS chat error:", error);
 
-    reply.textContent =
+    replyElement.textContent =
       "I'm unable to complete that request. " +
       (error.message || "Please try again later.");
   } finally {
