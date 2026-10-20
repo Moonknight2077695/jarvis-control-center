@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#08090b">
+<title>JARVIS | Control Center</title>
+<style>
+:root {
+  color-scheme: dark;
+  --bg: #08090b;
+  --panel: #111317;
+  --panel2: #191c21;
+  --border: #2b2f36;
+  --silver: #e2e4e8;
+  --muted: #9298a3;
+  --accent: #aab8c9;
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--silver);
+  font-family: system-ui, -apple-system, sans-serif;
+  min-height: 100vh;
+}
+header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px;
+  border-bottom: 1px solid var(--border);
+}
+.brand { font-size: 19px; letter-spacing: 4px; font-weight: 650; }
+.brand span { color: var(--muted); font-weight: 400; }
+.status { color: #a8c7ad; font-size: 11px; }
+main { width: min(850px, 100%); margin: auto; padding: 28px 18px 40px; }
+.eyebrow { color: var(--muted); font-size: 11px; letter-spacing: 2px; }
+h1 { font-size: clamp(27px, 7vw, 42px); font-weight: 450; margin: 10px 0; }
+.subtitle { color: var(--muted); line-height: 1.6; font-size: 14px; }
+.core {
+  margin: 26px 0 20px;
+  padding: 25px 18px;
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  background: radial-gradient(ellipse at top, #242a32 0%, #111317 65%);
+  text-align: center;
+}
+.orb {
+  width: 88px; height: 88px; margin: 0 auto 18px;
+  border-radius: 50%;
+  border: 1px solid #657080;
+  display: grid; place-items: center;
+  box-shadow: 0 0 35px #8799ad18, inset 0 0 20px #8799ad14;
+}
+.orb-inner {
+  width: 57px; height: 57px; border-radius: 50%;
+  border: 1px solid #aab8c9;
+  display: grid; place-items: center;
+  color: white; font-size: 20px; letter-spacing: 2px;
+}
+.core h2 { font-size: 16px; font-weight: 500; margin: 0 0 7px; }
+.core p { color: var(--muted); font-size: 12px; margin: 0; }
+.section-title {
+  margin: 27px 0 12px; font-size: 11px;
+  letter-spacing: 2px; color: var(--muted);
+}
+.grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; }
+.tile {
+  background: var(--panel); border: 1px solid var(--border);
+  border-radius: 13px; padding: 16px; min-height: 105px;
+}
+.tile-icon { font-size: 20px; margin-bottom: 12px; }
+.tile strong { display: block; font-size: 13px; font-weight: 550; }
+.tile p { color: var(--muted); font-size: 11px; line-height: 1.5; margin: 6px 0 0; }
+.chat {
+  border: 1px solid var(--border); border-radius: 15px;
+  overflow: hidden; background: var(--panel);
+}
+.messages {
+  padding: 16px; min-height: 100px; max-height: 250px;
+  overflow-y: auto;
+}
+.message { font-size: 13px; line-height: 1.6; margin-bottom: 12px; white-space: pre-wrap; overflow-wrap: anywhere; }
+.message .who { color: var(--accent); font-size: 10px; letter-spacing: 1px; display: block; margin-bottom: 4px; }
+.composer { display: flex; gap: 8px; padding: 10px; border-top: 1px solid var(--border); }
+input {
+  min-width: 0; flex: 1; padding: 12px;
+  color: var(--silver); background: #090a0c;
+  border: 1px solid var(--border); border-radius: 9px;
+  font: inherit; font-size: 13px; outline: none;
+}
+input:focus { border-color: #798595; }
+button {
+  border: 1px solid #657080; background: #d8dde4;
+  color: #111317; border-radius: 9px;
+  padding: 0 15px; font-weight: 650; cursor: pointer;
+}
+button:focus-visible { outline: 2px solid white; outline-offset: 3px; }
+.quick { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+.quick button {
+  background: var(--panel2); border-color: var(--border);
+  color: var(--silver); padding: 9px 11px;
+  font-size: 11px; font-weight: 450;
+}
+footer { text-align: center; color: #686e78; font-size: 10px; margin-top: 30px; letter-spacing: 1px; }
+@media (min-width: 600px) {
+  main { padding-top: 42px; }
+  .grid { grid-template-columns: repeat(4, 1fr); }
+  .core { padding: 32px; }
+}
+</style>
+</head>
+<body>
+<header>
+  <div class="brand">JARVIS<span> / CORE</span></div>
+  <div class="status">● SYSTEM ONLINE</div>
+</header>
+
+<main>
+  <div class="eyebrow">PERSONAL AI • CONTROL CENTER</div>
+  <h1>At your service.</h1>
+  <div class="subtitle">
+    Your personal assistant, designed around your world.<br>
+    One system. Multiple devices. Your control.
+  </div>
+
+  <section class="core">
+    <div class="orb"><div class="orb-inner">J</div></div>
+    <h2>JARVIS Interface</h2>
+    <p>Dashboard initialized · AI connection pending</p>
+  </section>
+
+  <div class="section-title">CAPABILITIES</div>
+  <section class="grid">
+    <div class="tile">
+      <div class="tile-icon">⌘</div>
+      <strong>Intelligence</strong>
+      <p>Reasoning, answers and problem-solving.</p>
+    </div>
+    <div class="tile">
+      <div class="tile-icon">⌕</div>
+      <strong>Research</strong>
+      <p>Information gathering and analysis.</p>
+    </div>
+    <div class="tile">
+      <div class="tile-icon">◷</div>
+      <strong>Memory</strong>
+      <p>Persistent context is planned.</p>
+    </div>
+    <div class="tile">
+      <div class="tile-icon">⌁</div>
+      <strong>Device control</strong>
+      <p>Permission-based actions, added later.</p>
+    </div>
+  </section>
+
+  <div class="section-title">COMMUNICATION</div>
+  <section class="chat">
+    <div class="messages" id="messages" aria-live="polite">
+      <div class="message">
+        <span class="who">JARVIS / SYSTEM</span>
+        Good day. The interface is operational. My AI engine has not yet been connected. What would you like to work on?
+      </div>
+    </div>
+    <form class="composer" id="chatForm">
+      <input id="prompt" type="text" placeholder="Enter a message..." aria-label="Message to JARVIS" autocomplete="off" required>
+      <button type="submit">Send</button>
+    </form>
+  </section>
+  <div class="quick">
+    <button type="button" data-prompt="Help me plan my day.">Plan my day</button>
+    <button type="button" data-prompt="Explain how the JARVIS project will work.">Project status</button>
+    <button type="button" data-prompt="Help me solve a problem step by step.">Solve a problem</button>
+  </div>
+
+  <footer>JARVIS PERSONAL SYSTEM · VERSION 0.1 · LOCAL DEMO</footer>
+</main>
+
+<script>
+const form = document.getElementById("chatForm");
+const input = document.getElementById("prompt");
+const messages = document.getElementById("messages");
+
+function addMessage(who, text) {
+  const message = document.createElement("div");
+  message.className = "message";
+  const label = document.createElement("span");
+  label.className = "who";
+  label.textContent = who;
+  const content = document.createElement("div");
+  content.textContent = text;
+  message.append(label, content);
+  messages.appendChild(message);
+  messages.scrollTop = messages.scrollHeight;
+}
+
+form.addEventListener("submit", function(event) {
+  event.preventDefault();
+  const text = input.value.trim();
+  if (!text) return;
+  addMessage("YOU", text);
+  addMessage("JARVIS / SYSTEM", "Message received. My AI engine is not connected yet, so I can't answer this request intelligently. That is our next development milestone.");
+  input.value = "";
+  input.focus();
+});
+
+document.querySelectorAll("[data-prompt]").forEach(button => {
+  button.addEventListener("click", () => {
+    input.value = button.dataset.prompt;
+    input.focus();
+  });
+});
+</script>
+</body>
+  </html>
+  
