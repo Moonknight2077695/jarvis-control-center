@@ -1,0 +1,91 @@
+
+import express from "express";
+
+const app = express();
+app.use(express.json({ limit: "20kb" }));
+
+const allowedOrigin =
+  "https://moonknight2077695.github.io";
+
+app.use((req, res, next) => {
+  res.setHeader("Access-Control-Allow-Origin", allowedOrigin);
+  res.setHeader("Access-Control-Allow-Methods", "POST, GET, OPTIONS");
+  res.setHeader("Access-Control-Allow-Headers", "Content-Type");
+
+  if (req.method === "OPTIONS") {
+    return res.sendStatus(204);
+  }
+
+  next();
+});
+
+app.get("/", (_req, res) => {
+  res.json({ status: "JARVIS backend is online." });
+});
+
+app.post("/chat", async (req, res) => {
+  const apiKey = process.env.OPENROUTER_API_KEY;
+  const message = req.body?.message;
+
+  if (!apiKey) {
+    return res.status(500).json({
+      error: "JARVIS AI is not configured yet."
+    });
+  }
+
+  if (typeof message !== "string" || !message.trim()) {
+    return res.status(400).json({
+      error: "Please enter a message."
+    });
+  }
+
+  try {
+    const response = await fetch(
+      "https://openrouter.ai/api/v1/chat/completions",
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${apiKey}`,
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          model: "openrouter/free",
+          messages: [
+            {
+              role: "system",
+              content:
+                "You are JARVIS, a calm, professional, helpful AI assistant with understated dry wit. Be practical, clear, and honest."
+            },
+            { role: "user", content: message.trim() }
+          ]
+        })
+      }
+    );
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      console.error("OpenRouter error:", response.status);
+      return res.status(502).json({
+        error: "The AI provider could not complete that request. Please try again."
+      });
+    }
+
+    res.json({
+      reply:
+        data.choices?.[0]?.message?.content ??
+        "I couldn't generate a reply. Please try again."
+    });
+  } catch (error) {
+    console.error("Chat request failed:", error);
+    res.status(500).json({
+      error: "JARVIS couldn't process that request."
+    });
+  }
+});
+
+const port = process.env.PORT || 10000;
+app.listen(port, "0.0.0.0", () => {
+  console.log(`JARVIS backend listening on port ${port}`);
+});
+  
