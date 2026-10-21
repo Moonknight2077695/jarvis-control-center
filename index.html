@@ -17,6 +17,8 @@
   --silver: #e2e4e8;
   --muted: #9298a3;
   --accent: #aab8c9;
+  --green: #a8c7ad;
+  --red: #e6a6a6;
 }
 
 * { box-sizing: border-box; }
@@ -33,7 +35,8 @@ header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 20px;
+  gap: 12px;
+  padding: 18px 20px;
   border-bottom: 1px solid var(--border);
 }
 
@@ -49,9 +52,13 @@ header {
 }
 
 .status {
-  color: #a8c7ad;
-  font-size: 11px;
+  color: var(--muted);
+  font-size: 10px;
+  text-align: right;
 }
+
+.status.online { color: var(--green); }
+.status.error { color: var(--red); }
 
 main {
   width: min(850px, 100%);
@@ -59,7 +66,7 @@ main {
   padding: 28px 18px 40px;
 }
 
-.eyebrow {
+.eyebrow, .section-title {
   color: var(--muted);
   font-size: 11px;
   letter-spacing: 2px;
@@ -82,7 +89,7 @@ h1 {
   padding: 25px 18px;
   border: 1px solid var(--border);
   border-radius: 18px;
-  background: radial-gradient(ellipse at top, #242a32 0%, #111317 65%);
+  background: radial-gradient(ellipse at top, #242a32, #111317 65%);
   text-align: center;
 }
 
@@ -101,10 +108,9 @@ h1 {
   width: 57px;
   height: 57px;
   border-radius: 50%;
-  border: 1px solid #aab8c9;
+  border: 1px solid var(--accent);
   display: grid;
   place-items: center;
-  color: white;
   font-size: 20px;
   letter-spacing: 2px;
 }
@@ -119,14 +125,10 @@ h1 {
   color: var(--muted);
   font-size: 12px;
   margin: 0;
+  line-height: 1.6;
 }
 
-.section-title {
-  margin: 27px 0 12px;
-  font-size: 11px;
-  letter-spacing: 2px;
-  color: var(--muted);
-}
+.section-title { margin: 27px 0 12px; }
 
 .grid {
   display: grid;
@@ -177,7 +179,7 @@ h1 {
 .message {
   font-size: 13px;
   line-height: 1.6;
-  margin-bottom: 12px;
+  margin-bottom: 16px;
   white-space: pre-wrap;
   overflow-wrap: anywhere;
 }
@@ -190,6 +192,8 @@ h1 {
   margin-bottom: 4px;
 }
 
+.message.error-message { color: var(--red); }
+
 .composer {
   display: flex;
   gap: 8px;
@@ -198,8 +202,8 @@ h1 {
 }
 
 input {
+  width: 100%;
   min-width: 0;
-  flex: 1;
   padding: 12px;
   color: var(--silver);
   background: #090a0c;
@@ -210,28 +214,32 @@ input {
   outline: none;
 }
 
-input:focus {
-  border-color: #798595;
-}
+input:focus { border-color: #798595; }
 
 button {
   border: 1px solid #657080;
   background: #d8dde4;
   color: #111317;
   border-radius: 9px;
-  padding: 0 15px;
+  padding: 11px 15px;
   font-weight: 650;
   cursor: pointer;
 }
 
-button:focus-visible {
-  outline: 2px solid white;
+button:focus-visible, input:focus-visible {
+  outline: 2px solid var(--accent);
   outline-offset: 3px;
 }
 
 button:disabled {
-  opacity: 0.6;
+  opacity: .6;
   cursor: wait;
+}
+
+.secondary-button {
+  background: var(--panel2);
+  border-color: var(--border);
+  color: var(--silver);
 }
 
 .quick {
@@ -249,6 +257,66 @@ button:disabled {
   font-size: 11px;
   font-weight: 450;
 }
+
+.auth-panel {
+  max-width: 440px;
+  margin: 30px auto;
+  padding: 24px;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+}
+
+.auth-panel h2 {
+  margin: 0 0 8px;
+  font-weight: 500;
+  font-size: 19px;
+}
+
+.auth-panel p {
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.auth-form {
+  display: grid;
+  gap: 12px;
+  margin-top: 20px;
+}
+
+.auth-form button { width: 100%; }
+
+.notice {
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.6;
+  min-height: 18px;
+}
+
+.notice.error { color: var(--red); }
+.notice.success { color: var(--green); }
+
+.toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin: 0 0 12px;
+  flex-wrap: wrap;
+}
+
+.toolbar span {
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.toolbar button {
+  font-size: 11px;
+  padding: 8px 10px;
+}
+
+[hidden] { display: none !important; }
 
 footer {
   text-align: center;
@@ -269,7 +337,7 @@ footer {
 <body>
 <header>
   <div class="brand">JARVIS<span> / CORE</span></div>
-  <div class="status">● SYSTEM ONLINE</div>
+  <div id="systemStatus" class="status">● LOCKED</div>
 </header>
 
 <main>
@@ -283,82 +351,163 @@ footer {
   <section class="core">
     <div class="orb"><div class="orb-inner">J</div></div>
     <h2>JARVIS Interface</h2>
-    <p>Dashboard initialized · AI connection ready</p>
+    <p id="coreStatus">Awaiting authentication.</p>
   </section>
 
-  <div class="section-title">CAPABILITIES</div>
-  <section class="grid">
-    <div class="tile">
-      <div class="tile-icon">⌘</div>
-      <strong>Intelligence</strong>
-      <p>Reasoning, answers and problem-solving.</p>
-    </div>
-    <div class="tile">
-      <div class="tile-icon">⌕</div>
-      <strong>Research</strong>
-      <p>Information gathering and analysis.</p>
-    </div>
-    <div class="tile">
-      <div class="tile-icon">◷</div>
-      <strong>Memory</strong>
-      <p>Conversation context active · Persistent memory planned.</p>
-    </div>
-    <div class="tile">
-      <div class="tile-icon">⌁</div>
-      <strong>Device control</strong>
-      <p>Permission-based actions, added later.</p>
-    </div>
-  </section>
+  <section id="authPanel" class="auth-panel">
+    <h2>Welcome back, Ahnaf.</h2>
+    <p>Unlock your personal assistant to begin a secure session.</p>
 
-  <div class="section-title">COMMUNICATION</div>
-  <section class="chat">
-    <div class="messages" id="messages" aria-live="polite">
-      <div class="message">
-        <span class="who">JARVIS / SYSTEM</span>
-        Good day, Ahnaf. The interface is operational. My AI engine is ready. How may I assist you?
-      </div>
-    </div>
-
-    <form class="composer" id="chatForm">
+    <form id="loginForm" class="auth-form">
       <input
-        id="prompt"
-        type="text"
-        placeholder="Enter a message..."
-        aria-label="Message to JARVIS"
-        autocomplete="off"
-        maxlength="8000"
+        id="password"
+        type="password"
+        placeholder="JARVIS access password"
+        aria-label="JARVIS access password"
+        autocomplete="current-password"
+        maxlength="1024"
         required
       >
-      <button type="submit">Send</button>
+      <button id="loginButton" type="submit">Unlock JARVIS</button>
+      <div id="loginNotice" class="notice" role="status" aria-live="polite"></div>
     </form>
   </section>
 
-  <div class="quick">
-    <button type="button" data-prompt="Help me plan my day.">Plan my day</button>
-    <button type="button" data-prompt="Explain how the JARVIS project will work.">Project status</button>
-    <button type="button" data-prompt="Help me solve a problem step by step.">Solve a problem</button>
-  </div>
+  <section id="appPanel" hidden>
+    <div class="section-title">CAPABILITIES</div>
+    <section class="grid">
+      <div class="tile">
+        <div class="tile-icon">⌘</div>
+        <strong>Intelligence</strong>
+        <p>Reasoning, answers and problem-solving.</p>
+      </div>
+      <div class="tile">
+        <div class="tile-icon">⌕</div>
+        <strong>Research</strong>
+        <p>Information gathering and analysis.</p>
+      </div>
+      <div class="tile">
+        <div class="tile-icon">◷</div>
+        <strong>Memory</strong>
+        <p>Supabase conversation archive and relevant past memories.</p>
+      </div>
+      <div class="tile">
+        <div class="tile-icon">⌁</div>
+        <strong>Device control</strong>
+        <p>Permission-based actions, added later.</p>
+      </div>
+    </section>
 
-  <footer>JARVIS PERSONAL SYSTEM · VERSION 0.2 · CONVERSATION CONTEXT</footer>
+    <div class="section-title">COMMUNICATION</div>
+
+    <div class="toolbar">
+      <span id="sessionStatus">Secure session active.</span>
+      <button id="newChatButton" class="secondary-button" type="button">
+        New conversation
+      </button>
+      <button id="logoutButton" class="secondary-button" type="button">
+        Lock JARVIS
+      </button>
+    </div>
+
+    <section class="chat">
+      <div class="messages" id="messages" aria-live="polite">
+        <div class="message">
+          <span class="who">JARVIS / SYSTEM</span>
+          Good day, Ahnaf. The interface is operational. How may I assist you?
+        </div>
+      </div>
+
+      <form class="composer" id="chatForm">
+        <input
+          id="prompt"
+          type="text"
+          placeholder="Enter a message..."
+          aria-label="Message to JARVIS"
+          autocomplete="off"
+          maxlength="8000"
+          required
+        >
+        <button id="sendButton" type="submit">Send</button>
+      </form>
+    </section>
+
+    <div class="quick">
+      <button type="button" data-prompt="Help me plan my day.">Plan my day</button>
+      <button type="button" data-prompt="Explain how the JARVIS project will work.">Project status</button>
+      <button type="button" data-prompt="Help me solve a problem step by step.">Solve a problem</button>
+    </div>
+  </section>
+
+  <footer>JARVIS PERSONAL SYSTEM · VERSION 0.3 · AUTHENTICATED MEMORY</footer>
 </main>
 
 <script>
-const API_URL = "https://jarvis-backend-yedi.onrender.com/chat";
+"use strict";
 
-const form = document.getElementById("chatForm");
+const API_BASE = "https://jarvis-backend-yedi.onrender.com";
+const SESSION_KEY = "jarvis_session_v1";
+const CONVERSATION_KEY = "jarvis_conversation_v1";
+
+const authPanel = document.getElementById("authPanel");
+const appPanel = document.getElementById("appPanel");
+const loginForm = document.getElementById("loginForm");
+const passwordInput = document.getElementById("password");
+const loginButton = document.getElementById("loginButton");
+const loginNotice = document.getElementById("loginNotice");
+const systemStatus = document.getElementById("systemStatus");
+const coreStatus = document.getElementById("coreStatus");
+const sessionStatus = document.getElementById("sessionStatus");
+
+const chatForm = document.getElementById("chatForm");
 const input = document.getElementById("prompt");
 const messages = document.getElementById("messages");
-const sendButton = form.querySelector('button[type="submit"]');
+const sendButton = document.getElementById("sendButton");
 
-// Temporary conversation history for this page session.
-const conversationHistory = [];
+let token = null;
+let expiresAt = 0;
+let conversationId = null;
+let busy = false;
 
-const MAX_HISTORY_MESSAGES = 12;
-const MAX_HISTORY_CHARS = 4000;
+function makeId() {
+  if (typeof crypto.randomUUID === "function") {
+    return crypto.randomUUID();
+  }
 
-function addMessage(who, text) {
+  const bytes = new Uint8Array(16);
+  crypto.getRandomValues(bytes);
+
+  return Array.from(bytes, byte =>
+    byte.toString(16).padStart(2, "0")
+  ).join("");
+}
+
+function getConversationId() {
+  let id = sessionStorage.getItem(CONVERSATION_KEY);
+
+  if (!id || !/^[a-zA-Z0-9_-]{8,100}$/.test(id)) {
+    id = makeId();
+    sessionStorage.setItem(CONVERSATION_KEY, id);
+  }
+
+  return id;
+}
+
+function setStatus(text, state = "") {
+  systemStatus.textContent = "● " + text;
+  systemStatus.className = "status" + (state ? " " + state : "");
+}
+
+function setNotice(text, type = "") {
+  loginNotice.textContent = text;
+  loginNotice.className = "notice" + (type ? " " + type : "");
+}
+
+function addMessage(who, text, isError = false) {
   const message = document.createElement("div");
   message.className = "message";
+
+  if (isError) message.classList.add("error-message");
 
   const label = document.createElement("span");
   label.className = "who";
@@ -374,99 +523,250 @@ function addMessage(who, text) {
   return content;
 }
 
-form.addEventListener("submit", async (event) => {
+function showApp() {
+  authPanel.hidden = true;
+  appPanel.hidden = false;
+  coreStatus.textContent = "Authenticated · AI and memory available";
+  sessionStatus.textContent = "Secure session active.";
+  setStatus("SESSION ACTIVE", "online");
+}
+
+function showLogin(message = "") {
+  authPanel.hidden = false;
+  appPanel.hidden = true;
+  coreStatus.textContent = "Awaiting authentication.";
+  setStatus("LOCKED");
+
+  if (message) setNotice(message, "error");
+
+  passwordInput.value = "";
+  passwordInput.focus();
+}
+
+function clearSession() {
+  token = null;
+  expiresAt = 0;
+  sessionStorage.removeItem(SESSION_KEY);
+}
+
+function saveSession(data) {
+  if (
+    typeof data.token !== "string" ||
+    !Number.isFinite(data.expiresAt)
+  ) {
+    throw new Error("The server returned an invalid session.");
+  }
+
+  token = data.token;
+  expiresAt = data.expiresAt * 1000;
+
+  sessionStorage.setItem(
+    SESSION_KEY,
+    JSON.stringify({
+      token,
+      expiresAt
+    })
+  );
+}
+
+function restoreSession() {
+  try {
+    const saved = JSON.parse(
+      sessionStorage.getItem(SESSION_KEY) || "null"
+    );
+
+    if (
+      !saved ||
+      typeof saved.token !== "string" ||
+      !Number.isFinite(saved.expiresAt) ||
+      saved.expiresAt <= Date.now()
+    ) {
+      clearSession();
+      return false;
+    }
+
+    token = saved.token;
+    expiresAt = saved.expiresAt;
+    return true;
+  } catch {
+    clearSession();
+    return false;
+  }
+}
+
+function sessionIsValid() {
+  return Boolean(token) && Date.now() < expiresAt;
+}
+
+async function requestJSON(path, options = {}) {
+  const headers = {
+    "Content-Type": "application/json",
+    ...(options.headers || {})
+  };
+
+  if (token) {
+    headers.Authorization = "Bearer " + token;
+  }
+
+  const response = await fetch(API_BASE + path, {
+    ...options,
+    headers
+  });
+
+  let data;
+
+  try {
+    data = await response.json();
+  } catch {
+    throw new Error("The server returned an unreadable response.");
+  }
+
+  if (response.status === 401 && path !== "/login") {
+    clearSession();
+    showLogin("Your session expired. Please unlock JARVIS again.");
+    throw new Error("Session expired. Unlock JARVIS to continue.");
+  }
+
+  if (!response.ok) {
+    throw new Error(
+      typeof data.error === "string"
+        ? data.error
+        : "Request failed (" + response.status + ")."
+    );
+  }
+
+  return data;
+}
+
+loginForm.addEventListener("submit", async event => {
+  event.preventDefault();
+
+  const password = passwordInput.value;
+
+  if (!password || loginButton.disabled) return;
+
+  loginButton.disabled = true;
+  setNotice("Authenticating...");
+
+  try {
+    const data = await requestJSON("/login", {
+      method: "POST",
+      headers: {},
+      body: JSON.stringify({ password })
+    });
+
+    saveSession(data);
+    conversationId = getConversationId();
+
+    setNotice("");
+    showApp();
+    input.focus();
+  } catch (error) {
+    clearSession();
+    setNotice(error.message || "Unable to unlock JARVIS.", "error");
+  } finally {
+    loginButton.disabled = false;
+    passwordInput.value = "";
+  }
+});
+
+chatForm.addEventListener("submit", async event => {
   event.preventDefault();
 
   const text = input.value.trim();
 
-  if (!text || sendButton.disabled) return;
+  if (!text || busy) return;
+
+  if (!sessionIsValid()) {
+    clearSession();
+    showLogin("Your session expired. Please unlock JARVIS again.");
+    return;
+  }
+
+  busy = true;
+  sendButton.disabled = true;
+  input.disabled = true;
 
   addMessage("YOU", text);
   input.value = "";
-  sendButton.disabled = true;
 
-  const replyElement = addMessage(
-    "JARVIS",
-    "Processing your request..."
-  );
+  const replyElement = addMessage("JARVIS", "Processing your request...");
 
   try {
-    const response = await fetch(API_URL, {
+    const data = await requestJSON("/chat", {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json"
-      },
       body: JSON.stringify({
         message: text,
-        history: conversationHistory.slice(-MAX_HISTORY_MESSAGES)
+        conversationId: conversationId || getConversationId()
       })
     });
 
-    let data;
-
-    try {
-      data = await response.json();
-    } catch {
-      throw new Error(
-        "The backend returned an unreadable response."
-      );
-    }
-
-    if (!response.ok) {
-      throw new Error(
-        data.error ||
-        `Backend request failed (${response.status}).`
-      );
-    }
-
-    if (
-      typeof data.reply !== "string" ||
-      !data.reply.trim()
-    ) {
+    if (typeof data.reply !== "string" || !data.reply.trim()) {
       throw new Error("The AI returned an empty response.");
     }
 
-    const assistantReply = data.reply.trim();
-    replyElement.textContent = assistantReply;
+    replyElement.textContent = data.reply.trim();
 
-    // Record successful exchanges for follow-up questions.
-    conversationHistory.push(
-      {
-        role: "user",
-        content: text.slice(0, MAX_HISTORY_CHARS)
-      },
-      {
-        role: "assistant",
-        content: assistantReply.slice(0, MAX_HISTORY_CHARS)
-      }
-    );
-
-    // Retain only the latest 12 individual messages.
-    if (conversationHistory.length > MAX_HISTORY_MESSAGES) {
-      conversationHistory.splice(
-        0,
-        conversationHistory.length - MAX_HISTORY_MESSAGES
+    if (data.memorySaved === false) {
+      addMessage(
+        "JARVIS / NOTICE",
+        "Your reply was generated, but saving it to memory failed. This exchange may not be available in your archive.",
+        true
       );
     }
   } catch (error) {
+    replyElement.textContent = error.message || "The request failed.";
+    replyElement.parentElement.classList.add("error-message");
     console.error("JARVIS chat error:", error);
-
-    replyElement.textContent =
-      "I'm unable to complete that request. " +
-      (error.message || "Please try again later.");
   } finally {
+    busy = false;
     sendButton.disabled = false;
+    input.disabled = false;
     messages.scrollTop = messages.scrollHeight;
-    input.focus();
+
+    if (!authPanel.hidden) {
+      passwordInput.focus();
+    } else {
+      input.focus();
+    }
   }
 });
 
-document.querySelectorAll("[data-prompt]").forEach((button) => {
+document.getElementById("logoutButton").addEventListener("click", () => {
+  clearSession();
+  showLogin("JARVIS has been locked.");
+});
+
+document.getElementById("newChatButton").addEventListener("click", () => {
+  if (busy) return;
+
+  conversationId = makeId();
+  sessionStorage.setItem(CONVERSATION_KEY, conversationId);
+
+  messages.replaceChildren();
+
+  addMessage(
+    "JARVIS / SYSTEM",
+    "New conversation initialized. Earlier conversations remain in the archive."
+  );
+
+  input.focus();
+});
+
+document.querySelectorAll("[data-prompt]").forEach(button => {
   button.addEventListener("click", () => {
     input.value = button.dataset.prompt;
     input.focus();
   });
 });
+
+// Restore the current tab's session after a page reload.
+if (restoreSession()) {
+  conversationId = getConversationId();
+  showApp();
+} else {
+  showLogin();
+}
 </script>
 </body>
 </html>
