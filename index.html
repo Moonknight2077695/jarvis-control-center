@@ -674,12 +674,10 @@ async function showApp(intrusionCount = 0) {
   setStatus("SESSION ACTIVE", "online");
   stopWebcam();
 
-  // If there were intrusion attempts while you were away, brief Ahnaf!
   if (intrusionCount > 0) {
     addMessage("JARVIS / SECURITY", `⚠️ Sir, ${intrusionCount} unauthorized biometric intrusion attempt(s) detected while you were away. Check security archives.`, true);
   }
 
-  // Check for stored intrusion reports from backend
   try {
     const data = await requestJSON("/check-intrusions");
     if (data.intrusions && data.intrusions.length > 0) {
@@ -769,7 +767,6 @@ async function requestJSON(path, options = {}) {
   return data;
 }
 
-// Password Login Handler
 loginForm.addEventListener("submit", async event => {
   event.preventDefault();
   const password = passwordInput.value;
@@ -797,7 +794,6 @@ loginForm.addEventListener("submit", async event => {
   }
 });
 
-// Capture intruder photo and upload to backend
 async function captureAndLogIntrusion() {
   try {
     const canvas = document.createElement("canvas");
@@ -807,6 +803,12 @@ async function captureAndLogIntrusion() {
     ctx.drawImage(webcamFeed, 0, 0, canvas.width, canvas.height);
     const imageData = canvas.toDataURL("image/jpeg");
 
-  
+    await fetch(API_BASE + "/log-intrusion", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ imageData })
+    });
+  } catch (err) {
+    con  
 
   
