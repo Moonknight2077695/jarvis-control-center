@@ -7,12 +7,12 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-// Environment configuration
+// Environment configuration matched to your Render variables
 const PORT = process.env.PORT || 3000;
-const MASTER_PASSWORD = process.env.MASTER_PASSWORD;
+const MASTER_PASSWORD = process.env.JARVIS_ACCESS_PASSWORD;
 const JWT_SECRET = process.env.JWT_SECRET;
 const SUPABASE_URL = process.env.SUPABASE_URL;
-const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY;
+const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SECRET_KEY;
 const OPENROUTER_API_KEY = process.env.OPENROUTER_API_KEY;
 
 if (!MASTER_PASSWORD || !JWT_SECRET || !SUPABASE_URL || !SUPABASE_SERVICE_KEY || !OPENROUTER_API_KEY) {
@@ -59,7 +59,6 @@ app.post("/chat", authenticateToken, async (req, res) => {
   }
 
   try {
-    // Call OpenRouter Free Model (e.g., Google Gemini Flash / Mistral / DeepSeek)
     const aiResponse = await fetch("https://openrouter.ai/api/v1/chat/completions", {
       method: "POST",
       headers: {
@@ -67,7 +66,7 @@ app.post("/chat", authenticateToken, async (req, res) => {
         "Content-Type": "application/json"
       },
       body: JSON.stringify({
-        model: "deepseek/deepseek-chat", // Or your preferred free openrouter model
+        model: "deepseek/deepseek-chat",
         messages: [
           { role: "system", content: "You are JARVIS, a high-end, minimalist artificial intelligence built for your creator, Ahnaf. You speak with polite precision, efficiency, and Stark-like competence." },
           { role: "user", content: message }
@@ -126,7 +125,6 @@ app.get("/check-intrusions", authenticateToken, async (req, res) => {
 
     if (error) throw error;
 
-    // Mark them as resolved so they brief you only once
     if (data && data.length > 0) {
       const ids = data.map(item => item.id);
       await supabase
