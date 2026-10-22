@@ -6,6 +6,9 @@
 <meta name="theme-color" content="#08090b">
 <title>JARVIS | Control Center</title>
 
+<!-- Load Face-API.js for Browser-based Biometric Face Detection -->
+<script defer src="https://cdn.jsdelivr.net/npm/@vladmandic/face-api@1.7.8/dist/face-api.min.js"></script>
+
 <style>
 :root {
   color-scheme: dark;
@@ -370,6 +373,50 @@ button:disabled {
 
 .auth-form button { width: 100%; }
 
+/* REAL WEBCAM BIOMETRIC SCANNER STYLES */
+.iris-scanner-container {
+  display: none;
+  text-align: center;
+  margin-top: 15px;
+}
+
+.hud-ring-box {
+  width: 180px;
+  height: 180px;
+  margin: 0 auto 15px;
+  position: relative;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  overflow: hidden;
+  border: 2px solid var(--accent);
+  background: #000;
+}
+
+.hud-ring-box video {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transform: scaleX(-1);
+  opacity: 0.65;
+}
+
+.hud-scanner-bar {
+  position: absolute;
+  width: 100%;
+  height: 2px;
+  background: #fff;
+  box-shadow: 0 0 10px #fff;
+  z-index: 2;
+  animation: scanMotion 1.5s ease-in-out infinite alternate;
+}
+
+@keyframes scanMotion {
+  0% { top: 5%; }
+  100% { top: 95%; }
+}
+
 .notice {
   color: var(--muted);
   font-size: 12px;
@@ -442,8 +489,9 @@ footer {
 
   <section id="authPanel" class="auth-panel">
     <h2>Welcome back, Ahnaf.</h2>
-    <p>Unlock your personal assistant to begin a secure session.</p>
+    <p>Select authentication protocol to begin secure session.</p>
 
+    <!-- Password Form -->
     <form id="loginForm" class="auth-form">
       <input
         id="password"
@@ -454,9 +502,20 @@ footer {
         maxlength="1024"
         required
       >
-      <button id="loginButton" type="submit">Unlock JARVIS</button>
+      <button id="loginButton" type="submit">Unlock with Password</button>
+      <button id="toggleIrisBtn" type="button" class="secondary-button">Initiate Biometric Iris Scan</button>
       <div id="loginNotice" class="notice" role="status" aria-live="polite"></div>
     </form>
+
+    <!-- Active Webcam Biometric Scanner View -->
+    <div id="irisScannerContainer" class="iris-scanner-container">
+      <div class="hud-ring-box">
+        <video id="webcamFeed" autoplay playsinline muted></video>
+        <div class="hud-scanner-bar"></div>
+      </div>
+      <p id="scannerStatusText" style="font-size: 11px; color: var(--silver); letter-spacing: 2px; margin-bottom: 15px;">INITIALIZING OPTICAL SENSORS...</p>
+      <button id="cancelIrisBtn" type="button" class="secondary-button">Cancel Scan</button>
+    </div>
   </section>
 
   <section id="appPanel" hidden>
@@ -500,7 +559,7 @@ footer {
       <div class="messages" id="messages" aria-live="polite">
         <div class="message">
           <span class="who">JARVIS / SYSTEM</span>
-          Good day, Ahnaf. The interface is operational. How may I assist you?
+          Good day, Ahnaf. Biometric match confirmed. The interface is operational. How may I assist you?
         </div>
       </div>
 
@@ -550,32 +609,32 @@ const input = document.getElementById("prompt");
 const messages = document.getElementById("messages");
 const sendButton = document.getElementById("sendButton");
 
+const toggleIrisBtn = document.getElementById("toggleIrisBtn");
+const irisScannerContainer = document.getElementById("irisScannerContainer");
+const cancelIrisBtn = document.getElementById("cancelIrisBtn");
+const webcamFeed = document.getElementById("webcamFeed");
+const scannerStatusText = document.getElementById("scannerStatusText");
+
 let token = null;
 let expiresAt = 0;
 let conversationId = null;
 let busy = false;
+let mediaStream = null;
+let modelsLoaded = false;
 
 function makeId() {
-  if (typeof crypto.randomUUID === "function") {
-    return crypto.randomUUID();
-  }
-
+  if (typeof crypto.randomUUID === "function") return crypto.randomUUID();
   const bytes = new Uint8Array(16);
   crypto.getRandomValues(bytes);
-
-  return Array.from(bytes, byte =>
-    byte.toString(16).padStart(2, "0")
-  ).join("");
+  return Array.from(bytes, byte => byte.toString(16).padStart(2, "0")).join("");
 }
 
 function getConversationId() {
   let id = sessionStorage.getItem(CONVERSATION_KEY);
-
   if (!id || !/^[a-zA-Z0-9_-]{8,100}$/.test(id)) {
     id = makeId();
     sessionStorage.setItem(CONVERSATION_KEY, id);
   }
-
   return id;
 }
 
@@ -592,7 +651,6 @@ function setNotice(text, type = "") {
 function addMessage(who, text, isError = false) {
   const message = document.createElement("div");
   message.className = "message";
-
   if (isError) message.classList.add("error-message");
 
   const label = document.createElement("span");
@@ -605,28 +663,51 @@ function addMessage(who, text, isError = false) {
   message.append(label, content);
   messages.appendChild(message);
   messages.scrollTop = messages.scrollHeight;
-
   return content;
 }
 
-function showApp() {
+async function showApp(intrusionCount = 0) {
   authPanel.hidden = true;
   appPanel.hidden = false;
-  coreStatus.textContent = "Authenticated · AI and memory available";
+  coreStatus.textContent = "Authenticated · Creator Override Verified";
   sessionStatus.textContent = "Secure session active.";
   setStatus("SESSION ACTIVE", "online");
+  stopWebcam();
+
+  // If there were intrusion attempts while you were away, brief Ahnaf!
+  if (intrusionCount > 0) {
+    addMessage("JARVIS / SECURITY", `⚠️ Sir, ${intrusionCount} unauthorized biometric intrusion attempt(s) detected while you were away. Check security archives.`, true);
+  }
+
+  // Check for stored intrusion reports from backend
+  try {
+    const data = await requestJSON("/check-intrusions");
+    if (data.intrusions && data.intrusions.length > 0) {
+      data.intrusions.forEach(incident => {
+        const alertMsg = document.createElement("div");
+        alertMsg.className = "message error-message";
+        alertMsg.innerHTML = `<span class="who">JARVIS / INTRUSION ALERT</span>
+          Unauthorized scan logged at <strong>${new Date(incident.timestamp).toLocaleString()}</strong>.<br>
+          <img src="${incident.image_data}" alt="Intruder Snapshot" style="max-width:160px; margin-top:8px; border-radius:6px; border:1px solid var(--red);" />`;
+        messages.appendChild(alertMsg);
+      });
+      messages.scrollTop = messages.scrollHeight;
+    }
+  } catch (e) {
+    console.error("Could not fetch security briefings:", e);
+  }
 }
 
 function showLogin(message = "") {
   authPanel.hidden = false;
   appPanel.hidden = true;
+  irisScannerContainer.style.display = "none";
+  loginForm.style.display = "grid";
   coreStatus.textContent = "Awaiting authentication.";
   setStatus("LOCKED");
-
   if (message) setNotice(message, "error");
-
   passwordInput.value = "";
-  passwordInput.focus();
+  stopWebcam();
 }
 
 function clearSession() {
@@ -636,41 +717,21 @@ function clearSession() {
 }
 
 function saveSession(data) {
-  if (
-    typeof data.token !== "string" ||
-    !Number.isFinite(data.expiresAt)
-  ) {
+  if (typeof data.token !== "string" || !Number.isFinite(data.expiresAt)) {
     throw new Error("The server returned an invalid session.");
   }
-
   token = data.token;
   expiresAt = data.expiresAt * 1000;
-
-  sessionStorage.setItem(
-    SESSION_KEY,
-    JSON.stringify({
-      token,
-      expiresAt
-    })
-  );
+  sessionStorage.setItem(SESSION_KEY, JSON.stringify({ token, expiresAt }));
 }
 
 function restoreSession() {
   try {
-    const saved = JSON.parse(
-      sessionStorage.getItem(SESSION_KEY) || "null"
-    );
-
-    if (
-      !saved ||
-      typeof saved.token !== "string" ||
-      !Number.isFinite(saved.expiresAt) ||
-      saved.expiresAt <= Date.now()
-    ) {
+    const saved = JSON.parse(sessionStorage.getItem(SESSION_KEY) || "null");
+    if (!saved || typeof saved.token !== "string" || !Number.isFinite(saved.expiresAt) || saved.expiresAt <= Date.now()) {
       clearSession();
       return false;
     }
-
     token = saved.token;
     expiresAt = saved.expiresAt;
     return true;
@@ -685,22 +746,11 @@ function sessionIsValid() {
 }
 
 async function requestJSON(path, options = {}) {
-  const headers = {
-    "Content-Type": "application/json",
-    ...(options.headers || {})
-  };
+  const headers = { "Content-Type": "application/json", ...(options.headers || {}) };
+  if (token) headers.Authorization = "Bearer " + token;
 
-  if (token) {
-    headers.Authorization = "Bearer " + token;
-  }
-
-  const response = await fetch(API_BASE + path, {
-    ...options,
-    headers
-  });
-
+  const response = await fetch(API_BASE + path, { ...options, headers });
   let data;
-
   try {
     data = await response.json();
   } catch {
@@ -714,36 +764,27 @@ async function requestJSON(path, options = {}) {
   }
 
   if (!response.ok) {
-    throw new Error(
-      typeof data.error === "string"
-        ? data.error
-        : "Request failed (" + response.status + ")."
-    );
+    throw new Error(typeof data.error === "string" ? data.error : "Request failed (" + response.status + ").");
   }
-
   return data;
 }
 
+// Password Login Handler
 loginForm.addEventListener("submit", async event => {
   event.preventDefault();
-
   const password = passwordInput.value;
-
   if (!password || loginButton.disabled) return;
 
   loginButton.disabled = true;
-  setNotice("Authenticating...");
+  setNotice("Authenticating code credentials...");
 
   try {
     const data = await requestJSON("/login", {
       method: "POST",
-      headers: {},
       body: JSON.stringify({ password })
     });
-
     saveSession(data);
     conversationId = getConversationId();
-
     setNotice("");
     showApp();
     input.focus();
@@ -756,103 +797,16 @@ loginForm.addEventListener("submit", async event => {
   }
 });
 
-chatForm.addEventListener("submit", async event => {
-  event.preventDefault();
-
-  const text = input.value.trim();
-
-  if (!text || busy) return;
-
-  if (!sessionIsValid()) {
-    clearSession();
-    showLogin("Your session expired. Please unlock JARVIS again.");
-    return;
-  }
-
-  busy = true;
-  sendButton.disabled = true;
-  input.disabled = true;
-
-  addMessage("YOU", text);
-  input.value = "";
-
-  const replyElement = addMessage("JARVIS", "Processing your request...");
-
+// Capture intruder photo and upload to backend
+async function captureAndLogIntrusion() {
   try {
-    const data = await requestJSON("/chat", {
-      method: "POST",
-      body: JSON.stringify({
-        message: text,
-        conversationId: conversationId || getConversationId()
-      })
-    });
+    const canvas = document.createElement("canvas");
+    canvas.width = webcamFeed.videoWidth || 320;
+    canvas.height = webcamFeed.videoHeight || 240;
+    const ctx = canvas.getContext("2d");
+    ctx.drawImage(webcamFeed, 0, 0, canvas.width, canvas.height);
+    const imageData = canvas.toDataURL("image/jpeg");
 
-    if (typeof data.reply !== "string" || !data.reply.trim()) {
-      throw new Error("The AI returned an empty response.");
-    }
+  
 
-    replyElement.textContent = data.reply.trim();
-
-    if (data.memorySaved === false) {
-      addMessage(
-        "JARVIS / NOTICE",
-        "Your reply was generated, but saving it to memory failed. This exchange may not be available in your archive.",
-        true
-      );
-    }
-  } catch (error) {
-    replyElement.textContent = error.message || "The request failed.";
-    replyElement.parentElement.classList.add("error-message");
-    console.error("JARVIS chat error:", error);
-  } finally {
-    busy = false;
-    sendButton.disabled = false;
-    input.disabled = false;
-    messages.scrollTop = messages.scrollHeight;
-
-    if (!authPanel.hidden) {
-      passwordInput.focus();
-    } else {
-      input.focus();
-    }
-  }
-});
-
-document.getElementById("logoutButton").addEventListener("click", () => {
-  clearSession();
-  showLogin("JARVIS has been locked.");
-});
-
-document.getElementById("newChatButton").addEventListener("click", () => {
-  if (busy) return;
-
-  conversationId = makeId();
-  sessionStorage.setItem(CONVERSATION_KEY, conversationId);
-
-  messages.replaceChildren();
-
-  addMessage(
-    "JARVIS / SYSTEM",
-    "New conversation initialized. Earlier conversations remain in the archive."
-  );
-
-  input.focus();
-});
-
-document.querySelectorAll("[data-prompt]").forEach(button => {
-  button.addEventListener("click", () => {
-    input.value = button.dataset.prompt;
-    input.focus();
-  });
-});
-
-if (restoreSession()) {
-  conversationId = getConversationId();
-  showApp();
-} else {
-  showLogin();
-}
-</script>
-</body>
-                                  </html>
-        
+  
